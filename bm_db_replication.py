@@ -28,7 +28,7 @@ if os.path.exists(os.path.join(possible_topdir, "nova", "__init__.py")):
 from nova import utils
 from nova import exception
 from os.path import exists
-from subprocess import call
+from subprocess import Popen, PIPE
 
 
 def usage():
@@ -76,7 +76,7 @@ def setup_master(values):
 	print "============================"
 	
 	##############################################
-	# MySQL Manipulation 
+	# MySQL Congiguration
 	##############################################
 	print "============================"
 	print "MySQL configuration"
@@ -113,18 +113,6 @@ def setup_master(values):
 	print "Setup replication master"
 	print "============================"
 
-	# mysql restart
-	print "Restarting mysql..."	
-	if exists("/etc/init.d/mysqld"):	
-		utils.execute('service', 'mysqld', 'restart',
-					run_as_root=True, 
-					check_exit_code=[0])
-	elif exists("/etc/init.d/mysql"):
-		utils.execute('service', 'mysql', 'restart',
-					run_as_root=True, 
-					check_exit_code=[0])
-	#end if
-
 	# Stop the current slave service if there is
 	utils.execute('mysql', 
 				'-u%s' % values['mysql_user'],
@@ -139,6 +127,19 @@ def setup_master(values):
 				'-e', 'RESET SLAVE;',
 				check_exit_code=[0])
 	
+	# mysql restart
+	print "Restarting mysql..."	
+	if exists("/etc/init.d/mysqld"):	
+		utils.execute('service', 'mysqld', 'restart',
+					run_as_root=True, 
+					check_exit_code=[0])
+	elif exists("/etc/init.d/mysql"):
+		utils.execute('service', 'mysql', 'restart',
+					run_as_root=True, 
+					check_exit_code=[0])
+	#end if
+
+
 	# Grant connection from replication slave
 	print "Granting replication to the slave '%s'" % values['db_slave']
 	utils.execute('mysql', 
@@ -169,11 +170,120 @@ def setup_master(values):
 	print "and run this script with slave mode in the replication slave server.\n"	
 	
 #end def setup_master(values):
+
+
 	
 def setup_slave(values):
 
-	a
+	print "============================"
+	print "MySQL Replication - Slave Setup"
+	print "============================"
 	
+	##############################################
+	# MySQL Configuration 
+	##############################################
+	print "============================"
+	print "MySQL configuration"
+	print "============================"
+
+	mysql_cnf_file= open(values['mysql_cnf'], 'rw+')
+	buf = mysql_cnf_file.read()
+
+	# server-id
+	if "server-id" in buf:
+		if "server-id=%s" % values['slave_id'] not in buf:
+			print "server-id already exists in '%s'." % values['mysql_cnf']
+			print "Please make sure that the server-id is different from the master-id" 	
+	else:
+		print "Inserting server-id=%s" % values['slave_id']
+		mysql_cnf_file.write("[mysqld]\nserver-id=%s\n" % values['slave_id'])
+	#end if
+
+	# report-host
+	if "report-host" not in buf:
+		print "Inserting report-host=%s" % values['db_slave']
+		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['db_slave'])
+
+
+	##############################################
+	# MySQL Manipulation 
+	##############################################
+	print "\n==========================="
+	print "Setup replication slave"
+	print "============================"
+
+	# Stop the current slave service if there is
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'SLAVE STOP;',
+				check_exit_code=[0])
+		
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'RESET SLAVE;',
+				check_exit_code=[0])
+	
+	# mysql restart
+	print "Restarting mysql..."	
+	if exists("/etc/init.d/mysqld"):	
+		utils.execute('service', 'mysqld', 'restart',
+					run_as_root=True, 
+					check_exit_code=[0])
+	elif exists("/etc/init.d/mysql"):
+		utils.execute('service', 'mysql', 'restart',
+					run_as_root=True, 
+					check_exit_code=[0])
+	#end if
+
+
+	# Initiate Slave Mode using snapshot file
+	print "Initiate slave mode..."
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"SLAVE STOP;", 
+				check_exit_code=[0])
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s';" 
+					% (values['db_master'], values['mysql_user'], values['mysql_pass']),
+				check_exit_code=[0])
+
+	'''
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'< %s' % values['mysql_snapshot'],  
+				check_exit_code=[0])
+	'''
+	p = Popen(['mysql', '-u%s' % values['mysql_user'], '-p%s' % values['mysql_pass']], stdin=PIPE)
+	buf = p.communicate(input='%s' % open(values['mysql_snapshot']).read())[0]
+	print buf
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"SLAVE START;", 
+				check_exit_code=[0])
+
+
+
+	print "\n============================"
+	print "Setup Complete"
+	print "============================"
+	print "Please copy '%s' to the replication slave server" % values['mysql_snapshot']
+	print "and run this script with slave mode in the replication slave server.\n"	
+	
+
+
 #end def setup_slave(values):
 
 	
