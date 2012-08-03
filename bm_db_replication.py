@@ -34,7 +34,10 @@ from subprocess import Popen, PIPE
 def usage():
 	print """
 usage:
-  bm_db_replication [master|slave] [OPTION]... 
+  bm_db_replication MODE [OPTION]... 
+  <MODE>
+  master
+  slave
 
   <required options>
   --db_master=<IP address of baremetal database master>
@@ -288,6 +291,10 @@ def setup_slave(values):
 
 	
 def main():
+	if len(sys.argv) < 2:
+		usage()
+		sys.exit(2)
+
 	if sys.argv[1] == 'master':
 		replication_mode = 'master'
 	elif sys.argv[1] == 'slave':
