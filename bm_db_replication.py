@@ -286,8 +286,6 @@ def setup_slave(values):
 	print "\n============================"
 	print "Setup Complete"
 	print "============================"
-	print "Please copy '%s' to the replication slave server" % values['mysql_snapshot']
-	print "and run this script with slave mode in the replication slave server.\n"	
 	
 
 
