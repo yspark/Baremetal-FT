@@ -107,6 +107,8 @@ def setup_master(values):
 	if "binlog-do-db=%s" % values['db_name'] not in buf:
 		print "Inserting binlog-do-db=%s" % values['db_name']
 		mysql_cnf_file.write("[mysqld]\nbinlog-do-db=%s\n" % values['db_name'])
+	
+	mysql_cnf_file.close()
 
 	
 	##############################################
@@ -165,6 +167,7 @@ def setup_master(values):
 
 	mysql_snapshot_file= open(values['mysql_snapshot'], 'w')
 	mysql_snapshot_file.write(buf[0])
+	mysql_snapshot_file.close()
 
 	print "\n============================"
 	print "Setup Complete"
@@ -207,6 +210,7 @@ def setup_slave(values):
 		print "Inserting report-host=%s" % values['db_slave']
 		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['db_slave'])
 
+	mysql_cnf_file.close()
 
 	##############################################
 	# MySQL Manipulation 
