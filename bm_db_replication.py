@@ -72,12 +72,44 @@ def check_required_opts(values):
 def setup_master(values):
 
 	print "============================"
-		
-
+	print "MySQL Replication - Master Setup"
+	print "============================"
+	
 	##############################################
 	# MySQL Manipulation 
 	##############################################
-	print "\n============================"
+	print "============================"
+	print "MySQL configuration"
+	print "============================"
+
+	mysql_cnf_file= open(values['mysql_cnf'], 'rw+')
+	buf = mysql_cnf_file.read()
+
+	# server-id
+	if "server-id" in buf:
+		if "server-id=%s" % values['master_id'] not in buf:
+			print "server-id already exists in '%s'." % values['mysql_cnf']
+			print "Please make sure that the server-id is different from the slave-id" 	
+	else:
+		print "Inserting server-id=%s" % values['master_id']
+		mysql_cnf_file.write("[mysqld]\nserver-id=%s\n" % values['master_id'])
+	#end if
+
+	# log-bin
+	if "log-bin=%s" % values['mysql_logbin'] not in buf:
+		print "Inserting log-bin=%s" % values['mysql_logbin']
+		mysql_cnf_file.write("[mysqld]\nlog-bin=%s\n" % values['mysql_logbin'])
+
+	# binlog-do-db
+	if "binlog-do-db=%s" % values['db_name'] not in buf:
+		print "Inserting binlog-do-db=%s" % values['db_name']
+		mysql_cnf_file.write("[mysqld]\nbinlog-do-db=%s\n" % values['db_name'])
+
+	
+	##############################################
+	# MySQL Manipulation 
+	##############################################
+	print "\n==========================="
 	print "Setup replication master"
 	print "============================"
 
