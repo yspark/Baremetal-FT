@@ -140,6 +140,7 @@ def setup_master(values):
 	
 def setup_slave(values):
 
+	a
 	
 #end def setup_slave(values):
 
