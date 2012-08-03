@@ -263,16 +263,9 @@ def setup_slave(values):
 					% (values['db_master'], values['mysql_user'], values['mysql_pass']),
 				check_exit_code=[0])
 
-	'''
-	utils.execute('mysql', 
-				'-u%s' % values['mysql_user'],
-				'-p%s' % values['mysql_pass'],
-				'< %s' % values['mysql_snapshot'],  
-				check_exit_code=[0])
-	'''
+	print "Reading in snapshot file '%s'" % values['mysql_snapshot']
 	p = Popen(['mysql', '-u%s' % values['mysql_user'], '-p%s' % values['mysql_pass']], stdin=PIPE)
-	buf = p.communicate(input='%s' % open(values['mysql_snapshot']).read())[0]
-	print buf
+	p.communicate(input='%s' % open(values['mysql_snapshot']).read())[0]
 
 	utils.execute('mysql', 
 				'-u%s' % values['mysql_user'],
