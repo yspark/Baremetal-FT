@@ -1,0 +1,74 @@
+#!/bin/bash
+
+MYSQL_USER=root
+MYSQL_PASS=nova
+MYSQL_MASTER_IP=65.114.169.241
+
+# Databases currently being replicated
+MYSQL_DATABASES="baremetal test"
+MYSQL_SNAPSHOT_FILE=/tmp/snapshot.db
+
+# Time interval between nova capability messages 
+NOVA_REPORT_PERIOD=20
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+start() {
+	#rm -f /tmp/yspark
+	echo "$0 start" >> /tmp/yspark
+
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "UPDATE heartbeat.status SET state=1;"
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "STOP SLAVE;"
+
+}
+
+stop() {
+	echo "$0 stop" >> /tmp/yspark
+
+
+	TEMP_OUTPUT=`mysql -u$MYSQL_USER -p$MYSQL_PASS -e "SELECT state FROM heartbeat.status;"`
+	set $TEMP_OUTPUT; HA_STATE=$2;
+
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "UPDATE heartbeat.status SET state=0;"
+
+	# If the slave goes from "status=1" to "status=0", transfer its DB snapshot to the master.
+	if [ "$HA_STATE" == "1" ]; then
+		sleep $NOVA_REPORT_PERIOD
+		mysqldump --databases $MYSQL_DATABASES --lock-all-tables --add-drop-table --add-drop-database --master-data=0 -u$MYSQL_USER -p$MYSQL_PASS > $MYSQL_SNAPSHOT_FILE		
+		mysql -h$MYSQL_MASTER_IP -u$MYSQL_USER -p$MYSQL_PASS < $MYSQL_SNAPSHOT_FILE	
+	fi
+	
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "START SLAVE;"
+}
+
+status() {
+	echo "$0 status" >> /tmp/yspark
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "UPDATE heartbeat.status SET state=0;"
+}
+
+
+restart() {
+	stop
+	start
+}
+
+
+case "$1" in
+start)
+	start
+	;;
+stop)
+	stop
+	;;
+restart)
+	restart
+	;;
+status)
+	status
+	;;
+*)
+	echo $"Usage: $0 {start|stop|restart} / argu: $1 $2" >> /tmp/yspark
+esac
+
+exit 0

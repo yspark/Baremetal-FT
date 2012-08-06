@@ -1,0 +1,28 @@
+#!/bin/bash
+
+MYSQL_USER=root
+MYSQL_PASS=nova
+
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+case "$1" in
+start)
+	echo "$0 start" >> /tmp/yspark
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "UPDATE heartbeat.status SET state=1;"
+	;;
+stop)
+	echo "$0 stop" >> /tmp/yspark
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "UPDATE heartbeat.status SET state=0;"
+	;;
+status)	
+	echo "$0 status" >> /tmp/yspark
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "UPDATE heartbeat.status SET state=0;"
+	;;
+*)
+	echo $"Usage: $0 {start|stop|status} / argu: $1 $2" >> /tmp/yspark
+	mysql -u$MYSQL_USER -p$MYSQL_PASS -e "UPDATE heartbeat.status SET state=0;"
+esac
+
+exit 0
