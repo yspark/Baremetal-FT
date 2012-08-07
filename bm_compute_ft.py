@@ -130,7 +130,7 @@ def config_ha_cf(setup_mode, values):
 	cf_file.write("deadtime %s\n" % values['dead_time'])
 	cf_file.write("initdead %s\n" % values['init_dead'])
 	
-	cf_file.write("auto_failback %s\n", values['auto_failback'])
+	cf_file.write("auto_failback %s\n" % values['auto_failback'])
 	cf_file.write("node %s\n" % values['master_name'])
 	cf_file.write("node %s\n" % values['slave_name'])
 	
