@@ -68,7 +68,7 @@ def check_required_opts(values):
 	ret = False
 
 	for opt, value in values.items():
-		if opt == 'ft_master_ip' or opt == 'ft_master_name' or opt == 'ft_slave_ip' or opt == 'ft_slave_name':
+		if opt == 'master_ip' or opt == 'master_name' or opt == 'slave_ip' or opt == 'slave_name':
 			if value == None:
 				print "'%s' should be specified" % opt
 				ret = True
@@ -78,6 +78,113 @@ def check_required_opts(values):
 		usage()
 		sys.exit(2)
 #end def check_values(valeus):
+
+
+def config_db(setup_mode, values):
+	print "Configuring DB ..."
+	
+	utils.execute('mysqladmin',
+					'-u%s' % values['mysql_user'],
+					'-p%s' % values['mysql_pass'],
+					'DROP', '-fs', 'nova_bm_ft',
+					check_exit_code=[1])
+
+	utils.execute('mysqladmin',
+					'-u%s' % values['mysql_user'],
+					'-p%s' % values['mysql_pass'],
+					'CREATE', 'nova_bm_ft',
+					check_exit_code=[0])
+
+	utils.execute('mysql',
+					'-u%s' % values['mysql_user'],
+					'-p%s' % values['mysql_pass'],
+					'nova_bm_ft',
+					'-e', 'CREATE TABLE status (state INT);',
+					check_exit_code=[0])
+	utils.execute('mysql',
+					'-u%s' % values['mysql_user'],
+					'-p%s' % values['mysql_pass'],
+					'nova_bm_ft',
+					'-e', 'INSERT INTO status SET state=0;',
+					check_exit_code=[0])
+
+#end def config_db()
+
+
+def config_ha_cf(setup_mode, values):
+	print "Configuring ha.cf ..."
+
+	if setup_mode == 'master':
+		dest_ip = values['slave_ip']
+	else:
+		dest_ip = values['master_ip']
+
+	cf_file = open('%s/ha.cf' % values['heartbeat_dir'], 'w')
+	
+	cf_file.write("udp port %s\n" % values['port'])
+	cf_file.write("ucast %s %s\n" % (values['eth'], dest_ip))
+	
+	cf_file.write("keepalive %s\n" % values['keep_alive'])
+	cf_file.write("warntime %s\n" % values['warn_time'])
+	cf_file.write("deadtime %s\n" % values['dead_time'])
+	cf_file.write("initdead %s\n" % values['init_dead'])
+	
+	cf_file.write("auto_failback off\n")
+	cf_file.write("node %s\n" % values['master_name'])
+	cf_file.write("node %s\n" % values['slave_name'])
+	
+	cf_file.write("debugfile %s/ha-debug\n" % values['heartbeat_log_dir'])
+	cf_file.write("logfile %s/ha-log\n" % values['heartbeat_log_dir'])
+	cf_file.write("use_logd yes\n")
+
+	cf_file.close()	
+#end def config_ha_cf(setup_mode):
+
+
+def config_haresource(values):
+	print "Configuring haresource ..."
+
+	cf_file = open('%s/haresource' % values['heartbeat_dir'], 'w')
+	cf_file.write("%s bm_compute_ft\n" % values['master_name'])
+	cf_file.close()
+
+	cf_file = open('%s/resource.d/bm_compute_ft' % values['heartbeat_dir'], 'w')
+	cf_file.write("#!/bin/bash\n")
+	cf_file.write(". /etc/rc.d/init.d/functions\n")
+	
+	cf_file.write("case \"$1\" in\n")
+	cf_file.write("start)\n")
+	cf_file.write("\tmysql -u%s -p%s -e \"UPDATE nova_bm_ft.status SET state=1;\"\n" \
+		% (values['mysql_user'], values['mysql_pass']))
+	cf_file.write("\t;;\n")
+
+	cf_file.write("stop)\n")
+	cf_file.write("\tmysql -u%s -p%s -e \"UPDATE nova_bm_ft.status SET state=0;\"\n" \
+		% (values['mysql_user'], values['mysql_pass']))
+	cf_file.write("\t;;\n")
+
+	cf_file.write("status)\n")
+	cf_file.write("\tmysql -u%s -p%s -e \"UPDATE nova_bm_ft.status SET state=0;\"\n" \
+		% (values['mysql_user'], values['mysql_pass']))
+	cf_file.write("\t;;\n")
+
+	cf_file.close()
+
+	os.chmod("%s/resource.d/bm_compute_ft" % values['heartbeat_dir'], 0755)
+		
+# def config_haresource(values):
+
+
+def config_authkeys(values):
+	print "Configuring authkeys ..."
+
+	cf_file = open('%s/authkeys' % values['heartbeat_dir'], 'w')
+	cf_file.write("auth 1\n")
+	cf_file.write("1 md5 %s\n" % values['auth_pass'])
+	cf_file.close()
+	
+	os.chmod("%s/authkeys" % values['heartbeat_dir'], 0600)		
+# def config_authkeys(values):
 
 	
 def main():
@@ -135,9 +242,9 @@ def main():
 		'warn_time': '8',
 		'dead_time': '16',
 		'init_dead': '32',
-		'auth_pass': 'ha_password'
-		'heartbeat_dir': '/etc/ha.d'
-		'heartbeat_log_dir': '/var/log'
+		'auth_pass': 'ha_password',
+		'heartbeat_dir': '/etc/ha.d',
+		'heartbeat_log_dir': '/var/log',
 	}
 
 	for opt, arg in opts:
@@ -161,23 +268,37 @@ def main():
 	# Setup master or slave 
 	if ft_mode == 'master':
 		print "\n==========================="
-	    print "Setup fault-tolerant baremetal master"
+		print "Setup fault-tolerant baremetal master"
 		print "============================"
-		dest_ip = slave_ip
 	else:
 		print "\n==========================="
-	    print "Setup fault-tolerant baremetal slave"
+		print "Setup fault-tolerant baremetal slave"
 		print "============================"
-		dest_ip = master_ip
 	#end if
 
 	# Stop heartbest service	
-    utils.execute('service','heartbeat','stop',check_exit_code=[0])	
+	utils.execute('service','heartbeat','stop',check_exit_code=[0])	
+
+	# setup DB
+	config_db(ft_mode, values)
 
 	# ha.cf configuration
+	config_ha_cf(ft_mode, values)
 
+	# haresource configuration
+	config_haresource(values)
+	
+	# authkeys configuration
+	config_authkeys(values)
 
+	# Firewall setup
+	utils.execute('iptables', '-I', 'INPUT', '1',
+					'-p', 'udp', '--dport', '694',
+					'-j', 'ACCEPT')
 
+	# Start heartbest service
+	print "Starting heartbest service"	
+	utils.execute('service','heartbeat','restart',check_exit_code=[0])	
 
 	sys.exit(1)
 #end def main():
