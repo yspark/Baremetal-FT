@@ -121,7 +121,7 @@ def config_ha_cf(setup_mode, values):
 
 	cf_file = open('%s/ha.cf' % values['heartbeat_dir'], 'w')
 	
-	cf_file.write("udp port %s\n" % values['port'])
+	cf_file.write("udpport %s\n" % values['port'])
 	cf_file.write("ucast %s %s\n" % (values['eth'], dest_ip))
 	
 	cf_file.write("keepalive %s\n" % values['keep_alive'])
@@ -144,7 +144,7 @@ def config_ha_cf(setup_mode, values):
 def config_haresource(values):
 	print "Configuring haresource ..."
 
-	cf_file = open('%s/haresource' % values['heartbeat_dir'], 'w')
+	cf_file = open('%s/haresources' % values['heartbeat_dir'], 'w')
 	cf_file.write("%s bm_compute_ft\n" % values['master_name'])
 	cf_file.close()
 
