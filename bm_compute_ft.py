@@ -57,6 +57,7 @@ usage:
   --warn_time=<Period of time after which a warning message is generated. Default: 8>
   --dead_time=<Period of time after which a node is considered dead. Default: 16>
   --init_dead=<Identical to ft_deadtime but applied only when initializing. Default: 32>
+  --auto_failback=<on/off. Default:on>
   --auth_pass=<Authentication key/password used in heartbeat message encryption. Default:ha_password>
   --heartbeat_dir=<Heartbeat directory. Default: /etc/ha.d>
   --heartbeat_log_dir=<Heartbeat log directory. Default: /var/log>
@@ -129,7 +130,7 @@ def config_ha_cf(setup_mode, values):
 	cf_file.write("deadtime %s\n" % values['dead_time'])
 	cf_file.write("initdead %s\n" % values['init_dead'])
 	
-	cf_file.write("auto_failback off\n")
+	cf_file.write("auto_failback %s\n", values['auto_failback'])
 	cf_file.write("node %s\n" % values['master_name'])
 	cf_file.write("node %s\n" % values['slave_name'])
 	
@@ -221,6 +222,7 @@ def main():
 			'warn_time=',
 			'dead_time=',
 			'init_dead=',
+			'auto_failback=',
 			'auth_pass=',
 			'heartbeat_dir=',
 			'heartbeat_log_dir=',
@@ -244,6 +246,7 @@ def main():
 		'warn_time': '8',
 		'dead_time': '16',
 		'init_dead': '32',
+		'auto_failback': 'on',
 		'auth_pass': 'ha_password',
 		'heartbeat_dir': '/etc/ha.d',
 		'heartbeat_log_dir': '/var/log',
