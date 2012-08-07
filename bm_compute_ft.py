@@ -167,6 +167,8 @@ def config_haresource(values):
 	cf_file.write("\tmysql -u%s -p%s -e \"UPDATE nova_bm_ft.status SET state=0;\"\n" \
 		% (values['mysql_user'], values['mysql_pass']))
 	cf_file.write("\t;;\n")
+	cf_file.write("esac\n")
+	cf_file.write("exit 0\n")
 
 	cf_file.close()
 
