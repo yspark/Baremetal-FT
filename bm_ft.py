@@ -47,6 +47,7 @@ usage:
   --master_name=<Host name of master server of baremetal fault-tolerance cluster>
   --slave_ip=<IP address of slave server of baremetal fault-tolerance cluster>
   --slave_name=<Host name of slave server of baremetal fault-tolerance cluster>
+  --common_ip=<IP address to be used for baremetal DB server or baremetal compute node>
   
   <optional options>
   --mysql_user=<MySQL user ID, Default:root>
@@ -146,7 +147,7 @@ def config_haresource(values):
 	print "Configuring haresource ..."
 
 	cf_file = open('%s/haresources' % values['heartbeat_dir'], 'w')
-	cf_file.write("%s IP_addr::10.99.0.100 bm_compute_ft\n" % values['master_name'])
+	cf_file.write("%s IPaddr::%s\n" % (values['master_name'], values['common_ip']))
 	cf_file.close()
 
 	cf_file = open('%s/resource.d/bm_compute_ft' % values['heartbeat_dir'], 'w')
