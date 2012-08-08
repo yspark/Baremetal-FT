@@ -157,7 +157,7 @@ def config_haresource(values):
 		rsc += " %s" % values['nova_compute'] 
 	
 	if values['bm_db'] != None:
-		rsc += " %s_ft" % values['bm_db']
+		rsc += " %s" % values['bm_db']
 	
 	rsc += "\n"
 
