@@ -168,14 +168,13 @@ def config_haresource(values):
 	
 	if values['bm_db'] != None:
 		rsc += " %s_ft" % values['bm_db']
+	
+	rsc += "\n"
 
-	cf_file.write("%s IPaddr::%s %s %s\n" % 
-					(values['master_name'], 
-					values['common_ip'],
-					values['nova_compute'],
-					values['bm_db']))
+	cf_file.write(rsc)
 	cf_file.close()
 	
+	sys.exit(1)
 
 	# Configure resource services
 	cf_file = open('%s/resource.d/bm_compute_ft' % values['heartbeat_dir'], 'w')
@@ -248,6 +247,11 @@ def main():
 			'bm_db=',
 			'mysql_user=',
 			'mysql_pass=',
+			'master_id=',
+			'slave_id=',
+			'mysql_logbin=',
+			'mysql_cnf=',
+			'mysql_snapshot=',
 			'eth=',
 			'port=',
 			'keep_alive=',
@@ -275,6 +279,11 @@ def main():
 		'bm_db': None,
 		'mysql_user': 'root',
 		'mysql_pass': 'nova',
+		'master_id': '1',
+		'slave_id': '2',
+		'mysql_logbin': 'mysql-bin',
+		'mysql_cnf': '/etc/my.cnf',
+		'mysql_snapshot': '/tmp/snapshot.db',
 		'eth': 'eth0',
 		'port': '694',
 		'keep_alive': '2',
