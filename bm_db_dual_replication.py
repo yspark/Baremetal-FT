@@ -110,7 +110,7 @@ def setup_master(values):
 
 	# report-host
 	if "report-host" not in buf:
-		print "Inserting report-host=%s" % values['db_slave']
+		print "Inserting report-host=%s" % values['db_master']
 		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['db_master'])
 
 	# auto_increment
