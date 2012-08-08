@@ -114,9 +114,10 @@ def setup_master(values):
 		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['db_master'])
 
 	# auto_increment
-	mysql_cnf_file.write("[mysqld]\n")
-	mysql_cnf_file.write("auto_increment_increment=2\n")
-	mysql_cnf_file.write("auto_increment_offset=1\n")
+	if "auto_increment_increment" not in buf:
+		mysql_cnf_file.write("[mysqld]\n")
+		mysql_cnf_file.write("auto_increment_increment=2\n")
+		mysql_cnf_file.write("auto_increment_offset=1\n")
 	
 	mysql_cnf_file.close()
 
@@ -248,9 +249,10 @@ def setup_slave(values):
 		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['db_slave'])
 
 	# auto_increment
-	mysql_cnf_file.write("[mysqld]\n")
-	mysql_cnf_file.write("auto_increment_increment=2\n")
-	mysql_cnf_file.write("auto_increment_offset=2\n")
+	if "auto_increment_increment" not in buf:
+		mysql_cnf_file.write("[mysqld]\n")
+		mysql_cnf_file.write("auto_increment_increment=2\n")
+		mysql_cnf_file.write("auto_increment_offset=2\n")
 	
 
 	mysql_cnf_file.close()
@@ -330,7 +332,8 @@ def setup_slave(values):
 	print "\n============================"
 	print "Setup Complete"
 	print "============================"
-	
+	print "Please run below command in the master server:" 
+	print "mysql -uUSER -pPASS -e \"SLAVE START;\""	
 
 
 #end def setup_slave(values):
