@@ -114,7 +114,7 @@ def setup_master(values):
 		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['db_master'])
 
 	# auto_increment
-	mysql_cnf_file.write("[mysqld]")
+	mysql_cnf_file.write("[mysqld]\n")
 	mysql_cnf_file.write("auto_increment_increment=2\n")
 	mysql_cnf_file.write("auto_increment_offset=1\n")
 	
@@ -189,6 +189,13 @@ def setup_master(values):
 					% (values['db_slave'], values['mysql_user'], values['mysql_pass']),
 				check_exit_code=[0])
 
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"SLAVE START;", 
+				check_exit_code=[0])
+
 	print "\n============================"
 	print "Setup Complete"
 	print "============================"
@@ -241,7 +248,7 @@ def setup_slave(values):
 		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['db_slave'])
 
 	# auto_increment
-	mysql_cnf_file.write("[mysqld]")
+	mysql_cnf_file.write("[mysqld]\n")
 	mysql_cnf_file.write("auto_increment_increment=2\n")
 	mysql_cnf_file.write("auto_increment_offset=2\n")
 	
