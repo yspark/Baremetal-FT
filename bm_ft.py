@@ -70,7 +70,8 @@ def check_required_opts(values):
 	ret = False
 
 	for opt, value in values.items():
-		if opt == 'master_ip' or opt == 'master_name' or opt == 'slave_ip' or opt == 'slave_name':
+		if opt == 'master_ip' or opt == 'master_name' or opt == 'slave_ip' or opt == 'slave_name' \
+		or opt == 'common_ip':
 			if value == None:
 				print "'%s' should be specified" % opt
 				ret = True
@@ -215,6 +216,7 @@ def main():
 			'master_name=',
 			'slave_ip=',
 			'slave_name=',
+			'common_ip=',
 			'mysql_user=',
 			'mysql_pass=',
 			'eth=',
@@ -239,6 +241,7 @@ def main():
 		'master_name': None,
 		'slave_ip': None,
 		'slave_name': None,
+		'common_ip': None,
 		'mysql_user': 'root',
 		'mysql_pass': 'nova',
 		'eth': 'eth0',
