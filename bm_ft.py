@@ -305,7 +305,7 @@ def main():
 		config_db_duplication(ft_mode, values)
 
 	# Start heartbest service
-	print "Starting heartbest service"	
+	print "Starting heartbeat service"	
 	utils.execute('service','heartbeat','restart',check_exit_code=[0])	
 
 	sys.exit(0)
