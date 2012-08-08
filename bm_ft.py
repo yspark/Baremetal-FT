@@ -156,9 +156,6 @@ def config_haresource(values):
 	if values['nova_compute'] != None:
 		rsc += " %s" % values['nova_compute'] 
 	
-	if values['bm_db'] != None:
-		rsc += " %s" % values['bm_db']
-	
 	rsc += "\n"
 
 	cf_file.write(rsc)
