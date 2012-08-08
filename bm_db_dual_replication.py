@@ -345,7 +345,7 @@ def setup_slave(values):
 	print "\n============================"
 	print "Setup Complete"
 	print "============================"
-	print "Please run below command in the master server:" 
+	print "Please run the below command in the master server:" 
 	print "mysql -uUSER -pPASS -e \"SLAVE START;\""	
 
 
@@ -402,30 +402,15 @@ def main():
 		'mysql_snapshot': '/tmp/snapshot.db'
 	}
 
-	for opt, arg in opts:
-		if opt == '--db_master':
-			values['db_master'] = arg
-		elif opt == '--db_slave':
-			values['db_slave'] = arg
-		elif opt == '--db_slave':
-			values['db_slave'] = arg
-		elif opt == '--db_slave':
-			values['db_slave'] = arg
-		elif opt == '--db_name':
-			values['db_name'] = arg
-		elif opt == '--master_id':
-			values['master_id'] = arg
-		elif opt == '--slave_id':
-			values['slave_id'] = arg
-		elif opt == '--mysql_user':
-			values['mysql_user'] = arg
-		elif opt == '--mysql_pass':
-			values['mysql_pass'] = arg
-		else:
-			print "unrecognized option '%s'" % opt
-			print usage
-			sys.exit(1)	
-	#end for
+        for opt, arg in opts:
+			opt = opt[2:]
+			if values.has_key(opt):
+				values[opt] = arg
+			else:
+				print "unrecognized option '%s'" % opt
+				print usage
+				sys.exit(2)
+		#end for        
 
 	# Check if required values are specified
 	check_required_opts(values)
@@ -441,9 +426,7 @@ def main():
 	else:
 		setup_slave(values)
 	
-	sys.exit(1)
-
-
+	sys.exit(0)
 #end def main():
 
 if __name__ == '__main__':

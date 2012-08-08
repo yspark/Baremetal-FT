@@ -94,34 +94,24 @@ def check_required_opts(values):
 #end def check_values(valeus):
 
 
-def config_db(setup_mode, values):
-	print "Configuring DB ..."
-	
-	utils.execute('mysqladmin',
-					'-u%s' % values['mysql_user'],
-					'-p%s' % values['mysql_pass'],
-					'DROP', '-fs', 'nova_bm_ft',
-					check_exit_code=[1])
+def config_db_duplication(setup_mode, values):
+	print "Configuring DB Duplication..."
 
-	utils.execute('mysqladmin',
-					'-u%s' % values['mysql_user'],
-					'-p%s' % values['mysql_pass'],
-					'CREATE', 'nova_bm_ft',
-					check_exit_code=[0])
+	output = utils.execute('python', 'bm_db_dual_replication.py',
+				setup_mode,
+				'--db_master=%s' % values['master_ip'],
+				'--db_slave=%s' % values['slave_ip'],
+				'--db_name=%s' % values['bm_db'],
+				'--mysql_user=%s' % values['mysql_user'],
+				'--mysql_pass=%s' % values['mysql_pass'],
+				'--master_id=%s' % values['master_id'],
+				'--slave_id=%s' % values['slave_id'],
+				'--mysql_logbin=%s' % values['mysql_logbin'],
+				'--mysql_cnf=%s' % values['mysql_cnf'],
+				'--mysql_snapshot=%s' % values['mysql_snapshot'],
+				check_exit_code=[0])	
 
-	utils.execute('mysql',
-					'-u%s' % values['mysql_user'],
-					'-p%s' % values['mysql_pass'],
-					'nova_bm_ft',
-					'-e', 'CREATE TABLE status (state INT);',
-					check_exit_code=[0])
-	utils.execute('mysql',
-					'-u%s' % values['mysql_user'],
-					'-p%s' % values['mysql_pass'],
-					'nova_bm_ft',
-					'-e', 'INSERT INTO status SET state=0;',
-					check_exit_code=[0])
-
+	print output[0]
 #end def config_db()
 
 
@@ -174,8 +164,6 @@ def config_haresource(values):
 	cf_file.write(rsc)
 	cf_file.close()
 	
-	sys.exit(1)
-
 	# Configure resource services
 	cf_file = open('%s/resource.d/bm_compute_ft' % values['heartbeat_dir'], 'w')
 	cf_file.write("#!/bin/bash\n")
@@ -303,7 +291,7 @@ def main():
 		else:
 			print "unrecognized option '%s'" % opt
 			print usage
-			sys.exit(1)
+			sys.exit(2)
 	#end for	
 	
 	# Check if required values are specified
@@ -328,9 +316,6 @@ def main():
 	# Stop heartbest service	
 	utils.execute('service','heartbeat','stop',check_exit_code=[0])	
 
-	# setup DB
-	config_db(ft_mode, values)
-
 	# ha.cf configuration
 	config_ha_cf(ft_mode, values)
 
@@ -345,12 +330,17 @@ def main():
 					'-p', 'udp', '--dport', '694',
 					'-j', 'ACCEPT')
 
+	# setup DB Duplication
+	if values['bm_db'] != None:
+		config_db_duplication(ft_mode, values)
+
 	# Start heartbest service
 	print "Starting heartbest service"	
 	utils.execute('service','heartbeat','restart',check_exit_code=[0])	
 
-	sys.exit(1)
+	sys.exit(0)
 #end def main():
+
 
 if __name__ == '__main__':
 	main()
