@@ -143,6 +143,12 @@ def setup_master(values):
 				'-e', 'RESET SLAVE;',
 				check_exit_code=[0])
 	
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'RESET MASTER;',
+				check_exit_code=[0])
+	
 	# mysql restart
 	print "Restarting mysql..."	
 	if exists("/etc/init.d/mysqld"):	
@@ -278,6 +284,12 @@ def setup_slave(values):
 				'-p%s' % values['mysql_pass'],
 				'-e', 'RESET SLAVE;',
 				check_exit_code=[0])
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'RESET MASTER;',
+				check_exit_code=[0])
 	
 	# mysql restart
 	print "Restarting mysql..."	
@@ -328,14 +340,6 @@ def setup_slave(values):
 				'-e', 
 				"GRANT REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s'" 
 					% (values['mysql_user'], values['db_master'], values['mysql_pass']),
-				check_exit_code=[0])
-
-	utils.execute('mysql', 
-				'-h%s' % values['db_master'],
-				'-u%s' % values['mysql_user'],
-				'-p%s' % values['mysql_pass'],
-				'-e', 
-				"SLAVE START;", 
 				check_exit_code=[0])
 
 	print "\n============================"
