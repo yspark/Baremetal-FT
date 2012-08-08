@@ -164,33 +164,6 @@ def config_haresource(values):
 	cf_file.write(rsc)
 	cf_file.close()
 	
-	# Configure resource services
-	cf_file = open('%s/resource.d/bm_compute_ft' % values['heartbeat_dir'], 'w')
-	cf_file.write("#!/bin/bash\n")
-	cf_file.write(". /etc/rc.d/init.d/functions\n")
-	
-	cf_file.write("case \"$1\" in\n")
-	cf_file.write("start)\n")
-	cf_file.write("\tmysql -u%s -p%s -e \"UPDATE nova_bm_ft.status SET state=1;\"\n" \
-		% (values['mysql_user'], values['mysql_pass']))
-	cf_file.write("\t;;\n")
-
-	cf_file.write("stop)\n")
-	cf_file.write("\tmysql -u%s -p%s -e \"UPDATE nova_bm_ft.status SET state=0;\"\n" \
-		% (values['mysql_user'], values['mysql_pass']))
-	cf_file.write("\t;;\n")
-
-	cf_file.write("status)\n")
-	cf_file.write("\tmysql -u%s -p%s -e \"UPDATE nova_bm_ft.status SET state=0;\"\n" \
-		% (values['mysql_user'], values['mysql_pass']))
-	cf_file.write("\t;;\n")
-	cf_file.write("esac\n")
-	cf_file.write("exit 0\n")
-
-	cf_file.close()
-
-	os.chmod("%s/resource.d/bm_compute_ft" % values['heartbeat_dir'], 0755)
-		
 # def config_haresource(values):
 
 
