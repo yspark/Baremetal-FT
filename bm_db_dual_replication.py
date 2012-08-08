@@ -325,9 +325,19 @@ def setup_slave(values):
 				'-u%s' % values['mysql_user'],
 				'-p%s' % values['mysql_pass'],
 				'-e', 
+				"SLAVE START;" 
+				check_exit_code=[0])
+
+	utils.execute('mysql', 
+				'-h%s' % values['db_master'],
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
 				"GRANT REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s'" 
 					% (values['mysql_user'], values['db_master'], values['mysql_pass']),
 				check_exit_code=[0])
+
+
 
 	print "\n============================"
 	print "Setup Complete"
