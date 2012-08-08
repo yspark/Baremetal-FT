@@ -147,7 +147,7 @@ def setup_master(values):
 				'-u%s' % values['mysql_user'],
 				'-p%s' % values['mysql_pass'],
 				'-e', 'RESET MASTER;',
-				check_exit_code=[0])
+				check_exit_code=[1])
 	
 	# mysql restart
 	print "Restarting mysql..."	
@@ -289,7 +289,7 @@ def setup_slave(values):
 				'-u%s' % values['mysql_user'],
 				'-p%s' % values['mysql_pass'],
 				'-e', 'RESET MASTER;',
-				check_exit_code=[0])
+				check_exit_code=[1])
 	
 	# mysql restart
 	print "Restarting mysql..."	
