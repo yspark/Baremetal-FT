@@ -170,7 +170,8 @@ def setup_master(values):
 	print "Making snapshot file '%s'..." % values['mysql_snapshot'] 
 	buf = utils.execute('mysqldump', 
 				'--databases', values['db_name'],
-				'--lock-all-tables', '--add-drop-table', '--add-drop-database',
+				'--lock-tables',
+				'--add-drop-database',
 				'--master-data=1',
 				'-u%s' % values['mysql_user'],
 				'-p%s' % values['mysql_pass'],
@@ -325,7 +326,8 @@ def setup_slave(values):
 				'-u%s' % values['mysql_user'],
 				'-p%s' % values['mysql_pass'],
 				'-e', 
-				"SLAVE START;" 
+				"GRANT REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s'" 
+					% (values['mysql_user'], values['db_master'], values['mysql_pass']),
 				check_exit_code=[0])
 
 	utils.execute('mysql', 
@@ -333,11 +335,8 @@ def setup_slave(values):
 				'-u%s' % values['mysql_user'],
 				'-p%s' % values['mysql_pass'],
 				'-e', 
-				"GRANT REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s'" 
-					% (values['mysql_user'], values['db_master'], values['mysql_pass']),
+				"SLAVE START;", 
 				check_exit_code=[0])
-
-
 
 	print "\n============================"
 	print "Setup Complete"
