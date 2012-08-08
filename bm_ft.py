@@ -36,7 +36,7 @@ from subprocess import Popen, PIPE
 def usage():
 	print """
 usage:
-  bm_db_ft MODE [OPTION]... 
+  bm_db_ft MODE [OPTION] [OPTION]... 
 
   <MODE>
   master
@@ -49,9 +49,20 @@ usage:
   --slave_name=<Host name of slave server of baremetal fault-tolerance cluster>
   --common_ip=<IP address to be used for baremetal DB server or baremetal compute node>
   
-  <optional options>
+  <Fault-tolerant BM Compute: Optional options>
+  --nova_compute_service=<Nova compute service. Default:None>
+
+  <Fault-tolerant BM Database: Optional options>
+  --bm_db=<Baremetal database to be replicated. Default:None>
   --mysql_user=<MySQL user ID, Default:root>
   --mysql_pass=<MySQL password for user ID, Default:nova>
+  --master_id=<ID of baremetal database master, Default:1>
+  --slave_id=<ID of baremetal database slave, Default:2>
+  --mysql_logbin=<MySQL binary log name, Default:mysql-bin>
+  --mysql_cnf=<MySQL Configuration file, Default:/etc/my.cnf>
+  --mysql_snapshot=<MySQL Snapshot file, Default:/tmp/snapshot.db>  
+  
+  <Heartbeat: Optional options>
   --eth=<Ethernet port to be used for heartbeat messages. Default:eth0>
   --port=<UDP Port number to be used for heartbeat messages. Default: 694>
   --keep_alive=<Time interval of keep-alive messages. Default: 2(sec)>
@@ -147,10 +158,26 @@ def config_ha_cf(setup_mode, values):
 def config_haresource(values):
 	print "Configuring haresource ..."
 
+	# Configure haresources
 	cf_file = open('%s/haresources' % values['heartbeat_dir'], 'w')
-	cf_file.write("%s IPaddr::%s\n" % (values['master_name'], values['common_ip']))
-	cf_file.close()
+	
+	rsc = "%s IPaddr::%s" % (values['master_name'], values['common_ip'])
+	
+	if values['nova_compute'] != None:
+		rsc += " %s" % values['nova_compute'] 
+	
+	if values['bm_db'] != None:
+		rsc += " %s_ft" % values['bm_db']
 
+	cf_file.write("%s IPaddr::%s %s %s\n" % 
+					(values['master_name'], 
+					values['common_ip'],
+					values['nova_compute'],
+					values['bm_db']))
+	cf_file.close()
+	
+
+	# Configure resource services
 	cf_file = open('%s/resource.d/bm_compute_ft' % values['heartbeat_dir'], 'w')
 	cf_file.write("#!/bin/bash\n")
 	cf_file.write(". /etc/rc.d/init.d/functions\n")
@@ -217,6 +244,8 @@ def main():
 			'slave_ip=',
 			'slave_name=',
 			'common_ip=',
+			'nova_compute=',
+			'bm_db=',
 			'mysql_user=',
 			'mysql_pass=',
 			'eth=',
@@ -242,6 +271,8 @@ def main():
 		'slave_ip': None,
 		'slave_name': None,
 		'common_ip': None,
+		'nova_compute': None,
+		'bm_db': None,
 		'mysql_user': 'root',
 		'mysql_pass': 'nova',
 		'eth': 'eth0',
