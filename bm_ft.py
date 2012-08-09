@@ -47,12 +47,12 @@ usage:
   --master_name=<Host name of master server of baremetal fault-tolerance cluster>
   --slave_ip=<IP address of slave server of baremetal fault-tolerance cluster>
   --slave_name=<Host name of slave server of baremetal fault-tolerance cluster>
-  --common_ip=<IP address to be used for baremetal DB server or baremetal compute node>
   
   <Fault-tolerant BM Compute: Optional options>
   --nova_compute_service=<Nova compute service. Default:None>
 
   <Fault-tolerant BM Database: Optional options>
+  --common_ip=<IP address to be used for baremetal DB server or baremetal compute node. Default:None>
   --bm_db=<Baremetal database to be replicated. Default:None>
   --mysql_user=<MySQL user ID, Default:root>
   --mysql_pass=<MySQL password for user ID, Default:nova>
@@ -81,8 +81,7 @@ def check_required_opts(values):
 	ret = False
 
 	for opt, value in values.items():
-		if opt == 'master_ip' or opt == 'master_name' or opt == 'slave_ip' or opt == 'slave_name' \
-		or opt == 'common_ip':
+		if opt == 'master_ip' or opt == 'master_name' or opt == 'slave_ip' or opt == 'slave_name':
 			if value == None:
 				print "'%s' should be specified" % opt
 				ret = True
@@ -151,7 +150,10 @@ def config_haresource(values):
 	# Configure haresources
 	cf_file = open('%s/haresources' % values['heartbeat_dir'], 'w')
 	
-	rsc = "%s IPaddr::%s" % (values['master_name'], values['common_ip'])
+	rsc = "%s" % values['master_name']
+
+	if values['common_ip'] != None:
+		rsc += " IPaddr::%s" % values['common_ip']
 	
 	if values['nova_compute'] != None:
 		rsc += " %s" % values['nova_compute'] 
