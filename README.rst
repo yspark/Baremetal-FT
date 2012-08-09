@@ -86,6 +86,16 @@ Example of the command is shown as below::
 There are many other optional parameter so please refer to the usage output 
 of the command.
 
+The script should be executed in the master node first.
+Then please copy a snapshot file of [bm_db] to the slave node.
+The default location of the snapshot file is '/tmp/snapshot.db' 
+and it can be changed using [mysql_snapshot] parameter.
+
+After running the scirpt in the slave node, please run the command below in 
+the master node::
+
+    mysql -u[mysql_user] -p[mysql_pass] -e "SLAVE START;"
+
 When heartbeat is configured properly using this script, either one of master 
 or slave node owns [common_ip]. 
 The head node or any other openstck nodes are able to access baremetal database
