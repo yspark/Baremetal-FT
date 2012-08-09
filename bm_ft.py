@@ -49,7 +49,7 @@ usage:
   --slave_name=<Host name of slave server of baremetal fault-tolerance cluster>
   
   <Fault-tolerant BM Compute: Optional options>
-  --nova_compute_service=<Nova compute service. Default:None>
+  --nova_compute=<Nova compute service. Default:None>
 
   <Fault-tolerant BM Database: Optional options>
   --common_ip=<IP address to be used for baremetal DB server or baremetal compute node. Default:None>
