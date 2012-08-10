@@ -197,13 +197,6 @@ def setup_master(values):
 					% (values['db_slave'], values['mysql_user'], values['mysql_pass']),
 				check_exit_code=[0])
 
-	utils.execute('mysql', 
-				'-u%s' % values['mysql_user'],
-				'-p%s' % values['mysql_pass'],
-				'-e', 
-				"SLAVE START;", 
-				check_exit_code=[0])
-
 	print "\n============================"
 	print "Setup Complete"
 	print "============================"
