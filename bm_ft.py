@@ -36,7 +36,7 @@ from subprocess import Popen, PIPE
 def usage():
 	print """
 usage:
-  bm_db_ft MODE [OPTION] [OPTION]... 
+  bm_ft MODE [OPTION] [OPTION]... 
 
   <MODE>
   master
@@ -92,7 +92,7 @@ def check_required_opts(values):
 		sys.exit(2)
 #end def check_values(valeus):
 
-
+'''
 def config_db_duplication(setup_mode, values):
 	print "Configuring DB Duplication..."
 
@@ -112,7 +112,7 @@ def config_db_duplication(setup_mode, values):
 
 	print output[0]
 #end def config_db()
-
+'''
 
 def config_ha_cf(setup_mode, values):
 	print "Configuring ha.cf ..."
@@ -176,6 +176,277 @@ def config_authkeys(values):
 	
 	os.chmod("%s/authkeys" % values['heartbeat_dir'], 0600)		
 # def config_authkeys(values):
+
+
+def setup_db_master(values):
+
+	print "============================"
+	print "MySQL Replication - Master Setup"
+	print "============================"
+	
+	##############################################
+	# MySQL Congiguration
+	##############################################
+	print "============================"
+	print "MySQL configuration"
+	print "============================"
+
+	mysql_cnf_file= open(values['mysql_cnf'], 'rw+')
+	buf = mysql_cnf_file.read()
+
+	# server-id
+	if "server-id" in buf:
+		if "server-id=%s" % values['master_id'] not in buf:
+			print "server-id already exists in '%s'." % values['mysql_cnf']
+			print "Please make sure that the server-id is different from the slave-id" 	
+	else:
+		print "Inserting server-id=%s" % values['master_id']
+		mysql_cnf_file.write("[mysqld]\nserver-id=%s\n" % values['master_id'])
+	#end if
+
+	# log-bin
+	if "log-bin=%s" % values['mysql_logbin'] not in buf:
+		print "Inserting log-bin=%s" % values['mysql_logbin']
+		mysql_cnf_file.write("[mysqld]\nlog-bin=%s\n" % values['mysql_logbin'])
+
+	# binlog-do-db
+	if "binlog-do-db=%s" % values['bm_db'] not in buf:
+		print "Inserting binlog-do-db=%s" % values['bm_db']
+		mysql_cnf_file.write("[mysqld]\nbinlog-do-db=%s\n" % values['bm_db'])
+
+	# report-host
+	if "report-host" not in buf:
+		print "Inserting report-host=%s" % values['_master_ip']
+		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['master_ip'])
+
+	# auto_increment
+	if "auto_increment_increment" not in buf:
+		mysql_cnf_file.write("[mysqld]\n")
+		mysql_cnf_file.write("auto_increment_increment=2\n")
+		mysql_cnf_file.write("auto_increment_offset=1\n")
+	
+	mysql_cnf_file.close()
+
+	
+	##############################################
+	# MySQL Manipulation 
+	##############################################
+	print "\n==========================="
+	print "Setup replication master"
+	print "============================"
+
+	# Stop the current slave service if there is
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'SLAVE STOP;',
+				check_exit_code=[0])
+		
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'RESET SLAVE;',
+				check_exit_code=[0])
+	
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'RESET MASTER;',
+				check_exit_code=[1])
+	
+	# mysql restart
+	print "Restarting mysql..."	
+	if exists("/etc/init.d/mysqld"):	
+		utils.execute('service', 'mysqld', 'restart',
+					run_as_root=True, 
+					check_exit_code=[0])
+	elif exists("/etc/init.d/mysql"):
+		utils.execute('service', 'mysql', 'restart',
+					run_as_root=True, 
+					check_exit_code=[0])
+	#end if
+
+
+	# Grant connection from replication slave
+	print "Granting replication to the slave '%s'" % values['slave_ip']
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"GRANT REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s'" 
+					% (values['mysql_user'], values['slave_ip'], values['mysql_pass']),
+				check_exit_code=[0])
+
+	# Make a DB snapshot
+	print "Making snapshot file '%s'..." % values['mysql_snapshot'] 
+	buf = utils.execute('mysqldump', 
+				'--databases', values['bm_db'],
+				'--lock-tables',
+				'--add-drop-database',
+				'--master-data=1',
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				check_exit_code=[0])
+
+	mysql_snapshot_file= open(values['mysql_snapshot'], 'w')
+	mysql_snapshot_file.write(buf[0])
+	mysql_snapshot_file.close()
+
+
+	# Initiate Dual Slave Mode
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s';" 
+					% (values['slave_ip'], values['mysql_user'], values['mysql_pass']),
+				check_exit_code=[0])
+
+	print "\n============================"
+	print "DB Replication Setup Complete"
+	print "============================"
+	print "Please copy '%s' to the replication slave server" % values['mysql_snapshot']
+	print "and run this script with slave mode in the replication slave server.\n"	
+	
+#end def setup_db_master(values):
+
+
+def setup_db_slave(values):
+
+	print "============================"
+	print "MySQL Replication - Slave Setup"
+	print "============================"
+	
+	##############################################
+	# MySQL Configuration 
+	##############################################
+	print "============================"
+	print "MySQL configuration"
+	print "============================"
+
+	mysql_cnf_file= open(values['mysql_cnf'], 'rw+')
+	buf = mysql_cnf_file.read()
+
+	# server-id
+	if "server-id" in buf:
+		if "server-id=%s" % values['slave_id'] not in buf:
+			print "server-id already exists in '%s'." % values['mysql_cnf']
+			print "Please make sure that the server-id is different from the master-id" 	
+	else:
+		print "Inserting server-id=%s" % values['slave_id']
+		mysql_cnf_file.write("[mysqld]\nserver-id=%s\n" % values['slave_id'])
+	#end if
+
+	# log-bin
+	if "log-bin=%s" % values['mysql_logbin'] not in buf:
+		print "Inserting log-bin=%s" % values['mysql_logbin']
+		mysql_cnf_file.write("[mysqld]\nlog-bin=%s\n" % values['mysql_logbin'])
+
+	# binlog-do-db
+	if "binlog-do-db=%s" % values['bm_db'] not in buf:
+		print "Inserting binlog-do-db=%s" % values['bm_db']
+		mysql_cnf_file.write("[mysqld]\nbinlog-do-db=%s\n" % values['bm_db'])
+
+	# report-host
+	if "report-host" not in buf:
+		print "Inserting report-host=%s" % values['slave_ip']
+		mysql_cnf_file.write("[mysqld]\nreport-host=%s\n" % values['slave_ip'])
+
+	# auto_increment
+	if "auto_increment_increment" not in buf:
+		mysql_cnf_file.write("[mysqld]\n")
+		mysql_cnf_file.write("auto_increment_increment=2\n")
+		mysql_cnf_file.write("auto_increment_offset=2\n")
+	
+
+	mysql_cnf_file.close()
+
+	##############################################
+	# MySQL Manipulation 
+	##############################################
+	print "\n==========================="
+	print "Setup replication slave"
+	print "============================"
+
+	# Stop the current slave service if there is
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'SLAVE STOP;',
+				check_exit_code=[0])
+		
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'RESET SLAVE;',
+				check_exit_code=[0])
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 'RESET MASTER;',
+				check_exit_code=[1])
+	
+	# mysql restart
+	print "Restarting mysql..."	
+	if exists("/etc/init.d/mysqld"):	
+		utils.execute('service', 'mysqld', 'restart',
+					run_as_root=True, 
+					check_exit_code=[0])
+	elif exists("/etc/init.d/mysql"):
+		utils.execute('service', 'mysql', 'restart',
+					run_as_root=True, 
+					check_exit_code=[0])
+	#end if
+
+
+	# Initiate Slave Mode using snapshot file
+	print "Initiate slave mode..."
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"SLAVE STOP;", 
+				check_exit_code=[0])
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s';" 
+					% (values['master_ip'], values['mysql_user'], values['mysql_pass']),
+				check_exit_code=[0])
+
+	print "Reading in snapshot file '%s'" % values['mysql_snapshot']
+	p = Popen(['mysql', '-u%s' % values['mysql_user'], '-p%s' % values['mysql_pass']], stdin=PIPE)
+	p.communicate(input='%s' % open(values['mysql_snapshot']).read())[0]
+
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"SLAVE START;", 
+				check_exit_code=[0])
+
+	# Grant connection from replication slave
+	print "Granting replication to the slave '%s'" % values['master_ip']
+	utils.execute('mysql', 
+				'-u%s' % values['mysql_user'],
+				'-p%s' % values['mysql_pass'],
+				'-e', 
+				"GRANT REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s'" 
+					% (values['mysql_user'], values['master_ip'], values['mysql_pass']),
+				check_exit_code=[0])
+
+	print "\n============================"
+	print "DB Replication Setup Complete"
+	print "============================"
+	print "Please run the below command in the master server:" 
+	print "mysql -uUSER -pPASS -e \"SLAVE START;\""	
+
+#end def setup_slave(values):
 
 	
 def main():
@@ -304,7 +575,10 @@ def main():
 
 	# setup DB Duplication
 	if values['bm_db'] != None:
-		config_db_duplication(ft_mode, values)
+		if ft_mode == 'master': 
+			setup_db_master(values)
+		else:
+			setup_db_slave(values)
 
 	# Start heartbest service
 	print "Starting heartbeat service"	
