@@ -3,8 +3,8 @@ Fault-tolerant Baremetal
 
 Fault-tolerance support for Baremetal consists of two functionalities.
 
-    Fault-tolerance support for Baremetal Compute node
-    Fault-tolerance support for Baremetal Database node
+    1. Fault-tolerance support for Baremetal Compute node
+    2. Fault-tolerance support for Baremetal Database node
 
 Main goal of this program is builiding a backup node(slave node) of baremetal 
 compute/database node(master node) so that whole openstak system can be 
@@ -12,6 +12,23 @@ protected from a single point of failure problem.
 
 For both functionalities, Heartbeat, a part of Linux High-Availability
 (http://linux-ha.org), should be installed in both master and slave nodes. 
+If you are running RHEL6, you can get Heartbeat from below repositories.::
+
+    [epel]
+    name=Extra Packages for Enterprise Linux 6 - $basearch
+    mirrorlist=https://mirrors.fedoraproject.org/metalink?repo=epel-6&arch=$basearch
+    enabled=0
+    gpgcheck=0
+
+    [scientific-linux]
+    name=Scientific Linux
+    baseurl=http://ftp.scientificlinux.org/linux/scientific/6/x86_64/os/
+    enabled=0
+    gpgcheck=0
+
+Then you can install Heartbeat.::
+    
+    yum --enablerepo=epel,scientific-linux install heartbeat
 
 
 Fault-tolerance support for Baremetal Compute Node
@@ -20,7 +37,7 @@ In order to support fault-tolerant baremetal compute node, two baremetal compute
 nodes should be set up properly.  
 That means, both master and slave node should be able to operate as a standalone 
 compute node.
-Then we can execute the script as show below::
+Then you can execute the script as show below::
     
     ./bm_ft.py [master|slave] \
         --master_ip=<IP address of master node> \
@@ -59,7 +76,7 @@ Fault-tolerance support for Baremetal Database Node
 --------------------------------------------------
 In order to support fault-tolerant baremetal database node, two baremetal database 
 nodes should be set up properly.  
-Then we can execute the script as show below::
+Then you can execute the script as show below::
     
     ./bm_ft.py [master|slave] \
         --master_ip=<IP address of master node> \
@@ -105,4 +122,34 @@ Once the node which owns [common_ip] fails, the other node will take over
 Also it's possible to give the preference to the master node by using 
 [auto_failback] parameter.
 
+
+Fault-tolerance support for Baremetal Compute/Database Node
+-----------------------------------------------------------
+This script also support fault-tolerance when both baremetal compute node and 
+baremetal database are running in the same machine.
+Please put all the necessary parameters in order to exploit this functionality.
+Then you can execute the script as show below::
+    
+    ./bm_ft.py [master|slave] \
+        --master_ip=<IP address of master node> \
+        --master_name=<Host name of master node> \
+        --slave_ip=<IP address of slave node> \
+        --slave_name=<Host name of slave node> \
+        --eth=<Ethernet interface to be used for communication among 
+                master, slave and other openstack nodes> \
+        --common_ip=<IP address for baremetal database node>
+        --bm_db=<The name of database to be replicated> \
+        --nova_compute=<Service script for openstck nova compute>
+
+Example of the command is shown as below::
+
+    ./bm_ft.py master \
+            --master_ip=10.99.0.3 \
+            --master_name=alchemist03 \
+            --slave_ip=10.99.0.2 \
+            --slave_name=alchemist02 \
+            --eth=br100 \ 
+            --common_ip=10.99.0.101 \
+            --bm_db=nova_bm \
+            --nova_compute=openstack-nova-compute
 
