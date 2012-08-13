@@ -123,7 +123,10 @@ of the command.
 The script should be executed in the master node first.
 Then please copy a snapshot file of [bm_db] to the slave node.
 The default location of the snapshot file is '/tmp/snapshot.db' 
-and it can be changed using [mysql_snapshot] parameter.
+and it can be changed using [mysql_snapshot] parameter.  An example of
+the command is shown below::
+
+    scp /tmp/snapshot.db [slave_ip]:/tmp/
 
 After running the scirpt in the slave node, please run the command below in 
 the master node::
