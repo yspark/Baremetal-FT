@@ -30,6 +30,23 @@ Then you can install Heartbeat.::
     
     yum --enablerepo=epel,scientific-linux install heartbeat
 
+In our testbest, a list of necessary programs are shown below::
+
+    ==================================================================================================================================
+     Package                           Arch                   Version                          Repository                        Size
+    ==================================================================================================================================
+    Installing:
+     heartbeat                         x86_64                 3.0.4-1.el6                      epel                             161 k
+    Installing for dependencies:
+     cluster-glue                      x86_64                 1.0.5-6.el6                      scientific-linux                  70 k
+     cluster-glue-libs                 x86_64                 1.0.5-6.el6                      scientific-linux                 115 k
+     heartbeat-libs                    x86_64                 3.0.4-1.el6                      epel                             263 k
+     perl-TimeDate                     noarch                 1:1.16-11.1.el6                  scientific-linux                  33 k
+     resource-agents                   x86_64                 3.9.2-12.el6                     scientific-linux                 473 k
+    
+    Transaction Summary
+    ==================================================================================================================================
+
 
 Fault-tolerance support for Baremetal Compute Node
 --------------------------------------------------
